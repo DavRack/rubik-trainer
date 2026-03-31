@@ -1,0 +1,125 @@
+{
+  ".svelte-kit/generated/client-optimized/app.js": {
+    "file": "_app/immutable/entry/app.A0bmpCUI.js",
+    "name": "entry/app",
+    "src": ".svelte-kit/generated/client-optimized/app.js",
+    "isEntry": true,
+    "imports": [
+      "_Db16CcuL.js",
+      "_CIzd5IOQ.js"
+    ],
+    "dynamicImports": [
+      ".svelte-kit/generated/client-optimized/nodes/0.js",
+      ".svelte-kit/generated/client-optimized/nodes/1.js",
+      ".svelte-kit/generated/client-optimized/nodes/2.js",
+      ".svelte-kit/generated/client-optimized/nodes/3.js"
+    ]
+  },
+  ".svelte-kit/generated/client-optimized/nodes/0.js": {
+    "file": "_app/immutable/nodes/0.BOZgNIh3.js",
+    "name": "nodes/0",
+    "src": ".svelte-kit/generated/client-optimized/nodes/0.js",
+    "isEntry": true,
+    "isDynamicEntry": true,
+    "imports": [
+      "_Db16CcuL.js",
+      "_CIzd5IOQ.js"
+    ],
+    "css": [
+      "_app/immutable/assets/0.UYjZsC43.css"
+    ]
+  },
+  ".svelte-kit/generated/client-optimized/nodes/1.js": {
+    "file": "_app/immutable/nodes/1.BWU1e-OQ.js",
+    "name": "nodes/1",
+    "src": ".svelte-kit/generated/client-optimized/nodes/1.js",
+    "isEntry": true,
+    "isDynamicEntry": true,
+    "imports": [
+      "_Db16CcuL.js",
+      "_CIzd5IOQ.js",
+      "_BK7MzJEJ.js"
+    ]
+  },
+  ".svelte-kit/generated/client-optimized/nodes/2.js": {
+    "file": "_app/immutable/nodes/2.CpjECSXL.js",
+    "name": "nodes/2",
+    "src": ".svelte-kit/generated/client-optimized/nodes/2.js",
+    "isEntry": true,
+    "isDynamicEntry": true,
+    "imports": [
+      "_Db16CcuL.js",
+      "_CIzd5IOQ.js",
+      "_aS-jQ0wR.js"
+    ],
+    "css": [
+      "_app/immutable/assets/2.BHhaHSJV.css"
+    ]
+  },
+  ".svelte-kit/generated/client-optimized/nodes/3.js": {
+    "file": "_app/immutable/nodes/3.KcdCcpOJ.js",
+    "name": "nodes/3",
+    "src": ".svelte-kit/generated/client-optimized/nodes/3.js",
+    "isEntry": true,
+    "isDynamicEntry": true,
+    "imports": [
+      "_Db16CcuL.js",
+      "_CIzd5IOQ.js",
+      "_aS-jQ0wR.js",
+      "_D8g8LKP0.js"
+    ],
+    "css": [
+      "_app/immutable/assets/3.C2pwSQ1B.css"
+    ]
+  },
+  "_!~{00b}~.js": {
+    "file": "_app/immutable/assets/Cube.C-xvyUmC.css",
+    "src": "_!~{00b}~.js"
+  },
+  "_BK7MzJEJ.js": {
+    "file": "_app/immutable/chunks/BK7MzJEJ.js",
+    "name": "entry",
+    "imports": [
+      "_Db16CcuL.js",
+      "_D8g8LKP0.js"
+    ]
+  },
+  "_CIzd5IOQ.js": {
+    "file": "_app/immutable/chunks/CIzd5IOQ.js",
+    "name": "index",
+    "imports": [
+      "_Db16CcuL.js"
+    ]
+  },
+  "_D8g8LKP0.js": {
+    "file": "_app/immutable/chunks/D8g8LKP0.js",
+    "name": "index",
+    "imports": [
+      "_Db16CcuL.js"
+    ]
+  },
+  "_Db16CcuL.js": {
+    "file": "_app/immutable/chunks/Db16CcuL.js",
+    "name": "scheduler"
+  },
+  "_aS-jQ0wR.js": {
+    "file": "_app/immutable/chunks/aS-jQ0wR.js",
+    "name": "Cube",
+    "imports": [
+      "_Db16CcuL.js",
+      "_CIzd5IOQ.js"
+    ],
+    "css": [
+      "_app/immutable/assets/Cube.C-xvyUmC.css"
+    ]
+  },
+  "node_modules/@sveltejs/kit/src/runtime/client/entry.js": {
+    "file": "_app/immutable/entry/start.KPZbkLPl.js",
+    "name": "entry/start",
+    "src": "node_modules/@sveltejs/kit/src/runtime/client/entry.js",
+    "isEntry": true,
+    "imports": [
+      "_BK7MzJEJ.js"
+    ]
+  }
+}
