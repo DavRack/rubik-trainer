@@ -10,11 +10,16 @@
   $: left = stickers?.slice(18, 21).split('');
 
   const getColor = (char: string) => (char === 'Y' ? '#FFD500' : '#444');
+
+  // Inject viewBox and make it scale
+  $: processedSvg = svg ? svg.replace('<svg ', '<svg viewBox="0 0 75 75" preserveAspectRatio="xMidYMid meet" ')
+                             .replace(/width="75"/, 'width="100%"')
+                             .replace(/height="75"/, 'height="100%"') : null;
 </script>
 
-{#if svg}
+{#if processedSvg}
   <div class="svg-container" style="width: {size}px; height: {size}px;">
-    {@html svg}
+    {@html processedSvg}
   </div>
 {:else if stickers}
   <svg width={size} height={size} viewBox="0 0 100 100">
@@ -88,11 +93,16 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
   }
   .svg-container :global(svg) {
     width: 100%;
     height: 100%;
     border: none;
     background: transparent;
+  }
+  /* Optional: make the grey parts of the cube more visible against the dark background */
+  .svg-container :global(rect[fill="#888888"]) {
+    fill: #333;
   }
 </style>
