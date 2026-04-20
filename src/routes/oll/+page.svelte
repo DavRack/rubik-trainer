@@ -2,6 +2,7 @@
   import { ollCases, type OLLCase } from '$lib/data/oll';
   import Cube from '$lib/components/Cube.svelte';
   import { onMount } from 'svelte';
+  import { base } from '$app/paths';
 
   let selectedIds: Set<number> = new Set();
   let infoCase: OLLCase | null = null;
@@ -48,7 +49,7 @@
   <div class="controls">
     <button on:click={selectAll}>Select All</button>
     <button on:click={clearAll}>Clear All</button>
-    <a href="/oll/practice" class="practice-btn" class:disabled={selectedIds.size === 0}>
+    <a href="{base}/oll/practice" class="practice-btn" class:disabled={selectedIds.size === 0}>
       Practice {selectedIds.size} cases
     </a>
   </div>

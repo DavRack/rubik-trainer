@@ -4,6 +4,7 @@
   import { stats, rateCase, removeResult, clearAllStats, getRetrievability } from '$lib/stores/stats';
   import Cube from '$lib/components/Cube.svelte';
   import { browser } from '$app/environment';
+  import { base } from '$app/paths';
   import type { Grade } from '$lib/fsrs';
 
   let selectedIds: number[] = [];
@@ -155,7 +156,7 @@
 <div class="layout">
   <main>
     {#if selectedIds.length === 0}
-      <div class="msg">No cases selected. <a href="/oll">Go select some</a>.</div>
+      <div class="msg">No cases selected. <a href="{base}/oll">Go select some</a>.</div>
     {:else if currentCase}
       <div class="scramble">{currentCase.setup}</div>
       

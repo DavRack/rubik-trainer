@@ -1,5 +1,6 @@
 <script lang="ts">
   import { downloadState, loadState } from '$lib/utils/backup';
+  import { base } from '$app/paths';
 
   let fileInput: HTMLInputElement;
 
@@ -22,12 +23,12 @@
   <p>Your one-stop shop for cubing tools.</p>
   
   <div class="tools-grid">
-    <a href="/oll" class="tool-card">
+    <a href="{base}/oll" class="tool-card">
       <h2>OLL Trainer</h2>
       <p>Master all 57 Orient Last Layer cases with our interactive trainer.</p>
     </a>
     
-    <a href="/bld-pairs" class="tool-card">
+    <a href="{base}/bld-pairs" class="tool-card">
       <h2>BLD Letter Pairs</h2>
       <p>Master your letter pairs with Anki-style flashcards and FSRS v5.</p>
     </a>

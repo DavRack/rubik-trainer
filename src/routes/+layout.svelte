@@ -1,14 +1,15 @@
 <script lang="ts">
   import '../app.css';
+  import { base } from '$app/paths';
 </script>
 
 <nav>
   <div class="logo">OLL Trainer</div>
   <div class="links">
-    <a href="/">Home</a>
-    <a href="/oll">OLL Cases</a>
-    <a href="/oll/practice">OLL Practice</a>
-    <a href="/bld-pairs">BLD Pairs</a>
+    <a href="{base}/">Home</a>
+    <a href="{base}/oll">OLL Cases</a>
+    <a href="{base}/oll/practice">OLL Practice</a>
+    <a href="{base}/bld-pairs">BLD Pairs</a>
   </div>
 </nav>
 
