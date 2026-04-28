@@ -12,11 +12,15 @@
   let lastCaseId: number | null = null;
   let showCase = false;
   
-  let timerState: 'idle' | 'ready' | 'running' | 'finished' = 'idle';
+  let timerState: 'idle' | 'holding' | 'ready' | 'running' | 'finished' = 'idle';
   let startTime = 0;
   let currentTime = 0;
   let interval: any;
+  let holdTimeout: any;
   let lastTime: number | null = null;
+  let lastGrade: Grade | null = null;
+  let lastScore: number | null = null;
+  let canContinue = false;
 
   onMount(() => {
     const saved = localStorage.getItem('selected-oll');
@@ -33,6 +37,7 @@
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
       clearInterval(interval);
+      clearTimeout(holdTimeout);
     }
   });
 
@@ -42,6 +47,14 @@
     if (currentCase) {
       lastCaseId = currentCase.id;
     }
+
+    lastGrade = null;
+    lastScore = null;
+    timerState = 'idle';
+    currentTime = 0;
+    showCase = false;
+    canContinue = false;
+    clearTimeout(holdTimeout);
 
     // FSRS Selection Logic
     // 1. Prioritize cases that have never been seen
@@ -66,36 +79,77 @@
     }
 
     currentCase = ollCases.find(c => c.id === selectedId) || null;
-    timerState = 'idle';
-    currentTime = 0;
-    showCase = false;
+  }
+
+  function getMedian(times: number[]): number {
+    if (times.length === 0) return 0;
+    const sorted = [...times].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+  }
+
+
+  $: globalBestMedian = (() => {
+    let minMedian = Infinity;
+    Object.values($stats).forEach(data => {
+      const last5 = data.results.filter(r => r.time > 0).slice(-5).map(r => r.time);
+      if (last5.length > 0) {
+        const m = getMedian(last5);
+        if (m < minMedian) minMedian = m;
+      }
+    });
+    return minMedian === Infinity ? 1.0 : minMedian;
+  })();
+
+  function getCalculatedGrade(ollCase: OLLCase, time: number): { grade: Grade, score: number } {
+    const score = globalBestMedian / time; 
+    
+    let grade: Grade;
+    if (score >= 0.90) grade = 4;
+    else if (score >= 0.60) grade = 3;
+    else grade = 2;
+
+    return { grade, score };
   }
 
   function handleKeyDown(e: KeyboardEvent) {
+    if (timerState === 'running') {
+      e.preventDefault();
+      stopTimer(false);
+      return;
+    }
+
     if (timerState === 'finished') {
-      if (e.key === '1') handleRate(1);
-      if (e.key === '2') handleRate(2);
-      if (e.key === '3') handleRate(3);
-      if (e.key === '4') handleRate(4);
+      if ((e.code === 'Space' || e.key === 'Enter') && canContinue) {
+        e.preventDefault();
+        nextCase();
+      }
+      if (e.code === 'Backspace') {
+        e.preventDefault();
+        if (currentCase && lastGrade !== 1) {
+          rateCase(currentCase.id, 0, 1);
+          lastGrade = 1;
+          lastScore = 0;
+        }
+      }
       return;
     }
 
     if (e.code === 'Space') {
       e.preventDefault();
       if (timerState === 'idle') {
-        timerState = 'ready';
-      } else if (timerState === 'running') {
-        stopTimer();
+        timerState = 'holding';
+        clearTimeout(holdTimeout);
+        holdTimeout = setTimeout(() => {
+          if (timerState === 'holding') {
+            timerState = 'ready';
+          }
+        }, 500);
       }
     } else if (e.code === 'Backspace') {
       e.preventDefault();
-      if (timerState === 'running') {
-        stopTimer();
-      } else if (timerState === 'idle') {
-        // Instant "Again"
-        if (currentCase) {
-          handleRate(1);
-        }
+      if (timerState === 'idle' || timerState === 'finished') {
+        if (currentCase) stopTimer(true);
       }
     }
   }
@@ -105,6 +159,9 @@
       e.preventDefault();
       if (timerState === 'ready') {
         startTimer();
+      } else if (timerState === 'holding') {
+        clearTimeout(holdTimeout);
+        timerState = 'idle';
       }
     }
   }
@@ -117,13 +174,30 @@
     }, 10);
   }
 
-  function stopTimer() {
+  function stopTimer(isDNF = false) {
     clearInterval(interval);
-    timerState = 'finished';
-    const finalTime = (Date.now() - startTime) / 1000;
+    const finalTime = isDNF ? 0 : (Date.now() - startTime) / 1000;
     currentTime = finalTime;
     lastTime = finalTime;
-    showCase = true; // Always reveal after solve
+    timerState = 'finished';
+    showCase = true;
+    canContinue = false;
+
+    if (currentCase) {
+      if (isDNF) {
+        lastGrade = 1;
+        lastScore = 0;
+      } else {
+        const result = getCalculatedGrade(currentCase, finalTime);
+        lastGrade = result.grade;
+        lastScore = result.score;
+      }
+      rateCase(currentCase.id, finalTime, lastGrade);
+    }
+
+    setTimeout(() => {
+      canContinue = true;
+    }, 1000);
   }
 
   function handleRate(grade: Grade) {
@@ -158,6 +232,75 @@
   $: statsData = statsCaseId ? $stats[statsCaseId] : null;
 
   let activeInfo: string | null = null;
+  let sessionStartTime = Date.now();
+
+  onMount(() => {
+    const savedOll = localStorage.getItem('selected-oll');
+    if (savedOll) {
+      selectedIds = JSON.parse(savedOll);
+      nextCase();
+    }
+
+    // Session Persistence Logic
+    const savedSessionStart = localStorage.getItem('session-start-time');
+    const allResults = Object.values($stats).flatMap(s => s.results);
+    const lastResultTimestamp = allResults.length > 0 
+      ? Math.max(...allResults.map(r => r.timestamp)) 
+      : 0;
+
+    const eightHours = 8 * 60 * 60 * 1000;
+    const now = Date.now();
+
+    if (savedSessionStart) {
+      const startTime = parseInt(savedSessionStart);
+      // If last solve was more than 8 hours ago, or session start is clearly invalid, reset
+      if (now - lastResultTimestamp > eightHours) {
+        resetSession();
+      } else {
+        sessionStartTime = startTime;
+      }
+    } else {
+      resetSession();
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+  });
+
+  function resetSession() {
+    sessionStartTime = Date.now();
+    localStorage.setItem('session-start-time', sessionStartTime.toString());
+  }
+
+  $: sessionStats = (() => {
+    const sessionResults = Object.values($stats).flatMap(s => 
+      s.results.filter(r => r.timestamp > sessionStartTime)
+    );
+    
+    if (sessionResults.length === 0) return null;
+
+    const validSolves = sessionResults.filter(r => r.grade > 1);
+    const avgTime = validSolves.reduce((acc, r) => acc + r.time, 0) / (validSolves.length || 1);
+    const bestTime = validSolves.length > 0 ? Math.min(...validSolves.map(r => r.time)) : 0;
+
+    const gradeCounts = {
+      1: sessionResults.filter(r => r.grade === 1).length,
+      2: sessionResults.filter(r => r.grade === 2).length,
+      3: sessionResults.filter(r => r.grade === 3).length,
+      4: sessionResults.filter(r => r.grade === 4).length,
+    };
+
+    const memorizedCount = Object.keys($stats).length;
+
+    return {
+      count: sessionResults.length,
+      dnfs: gradeCounts[1],
+      avgTime: avgTime,
+      bestTime: bestTime,
+      grades: gradeCounts,
+      memorized: memorizedCount
+    };
+  })();
 
   function toggleInfo(name: string) {
     activeInfo = activeInfo === name ? null : name;
@@ -200,25 +343,37 @@
             </div>
           {/if}
         </div>
-        <div class="timer" class:ready={timerState === 'ready'} class:running={timerState === 'running'}>
+        <div class="timer" 
+             class:holding={timerState === 'holding'} 
+             class:ready={timerState === 'ready'} 
+             class:running={timerState === 'running'}>
           {formatTime(currentTime)}
         </div>
       </div>
 
       {#if timerState === 'finished'}
-        <div class="rating-controls">
-          <p>How was that solve?</p>
-          <div class="buttons">
-            <button class="rate-btn again" on:click={() => handleRate(1)}><span>1</span> Again</button>
-            <button class="rate-btn hard" on:click={() => handleRate(2)}><span>2</span> Hard</button>
-            <button class="rate-btn good" on:click={() => handleRate(3)}><span>3</span> Good</button>
-            <button class="rate-btn easy" on:click={() => handleRate(4)}><span>4</span> Easy</button>
+        <div class="rating-display">
+          <div class="score-row">
+            <div class="grade-badge grade-{lastGrade}">
+              {lastGrade === 1 ? 'DNF' : getGradeLabel(lastGrade || 3)}
+            </div>
+            {#if lastScore !== null && currentCase}
+              <div class="score-details">
+                <div class="performance-score" title="Performance relative to your fastest OLL case (Median of last 5: {globalBestMedian.toFixed(2)}s)">
+                  {(lastScore * 100).toFixed(0)}%
+                </div>
+                <div class="vs-avg-label">vs. absolute best</div>
+              </div>
+            {/if}
           </div>
+          <p class="next-hint" style="opacity: {canContinue ? 1 : 0.3}; transition: opacity 0.2s;">
+            Press <strong>Space</strong> for next, <strong>Backspace</strong> for DNF
+          </p>
         </div>
       {:else}
         <div class="hints">
           <p>Press <strong>Space</strong> to {timerState === 'idle' ? 'start' : 'stop'}</p>
-          <p>Press <strong>Backspace</strong> to skip/fail</p>
+          <p>Press <strong>Backspace</strong> to DNF</p>
         </div>
       {/if}
 
@@ -230,6 +385,45 @@
   </main>
 
   <aside class="sidebar">
+    {#if sessionStats}
+      <section class="session-stats">
+        <div class="session-header">
+          <div class="session-title">
+            <h3>Session Stats</h3>
+            <button class="reset-link" on:click={resetSession}>Reset</button>
+          </div>
+          <span class="memorized-count" title="Total cases with at least one solve">{sessionStats.memorized}/57 Memorized</span>
+        </div>
+        <div class="session-grid">
+          <div class="session-box">
+            <span class="label">Solves</span>
+            <span class="value">{sessionStats.count}</span>
+          </div>
+          <div class="session-box">
+            <span class="label">Avg Time</span>
+            <span class="value">{sessionStats.avgTime.toFixed(2)}s</span>
+          </div>
+          <div class="session-box">
+            <span class="label">Best Time</span>
+            <span class="value" style="color: var(--primary-color)">{sessionStats.bestTime.toFixed(2)}s</span>
+          </div>
+        </div>
+
+        <div class="grade-breakdown">
+          <div class="grade-bar dnf" title="DNF: {sessionStats.grades[1]}" style="flex: {sessionStats.grades[1]}"></div>
+          <div class="grade-bar hard" title="Hard: {sessionStats.grades[2]}" style="flex: {sessionStats.grades[2]}"></div>
+          <div class="grade-bar good" title="Good: {sessionStats.grades[3]}" style="flex: {sessionStats.grades[3]}"></div>
+          <div class="grade-bar easy" title="Easy: {sessionStats.grades[4]}" style="flex: {sessionStats.grades[4]}"></div>
+        </div>
+        <div class="grade-labels">
+          <span>{sessionStats.grades[1]} DNF</span>
+          <span>{sessionStats.grades[2]} H</span>
+          <span>{sessionStats.grades[3]} G</span>
+          <span>{sessionStats.grades[4]} E</span>
+        </div>
+      </section>
+    {/if}
+
     <section class="summary">
       <div class="summary-header">
         <h3>Spaced Repetition</h3>
@@ -293,7 +487,11 @@
               Retrievability
               <button class="info-btn-small" on:click={() => toggleInfo('Retrievability')}>i</button>
             </span>
-            <span class="value">{(getRetrievability(statsData.fsrs?.stability || 0, statsData.fsrs?.last_review || Date.now()) * 100).toFixed(1)}%</span>
+            <span class="value">
+              {statsData.fsrs?.stability 
+                ? (getRetrievability(statsData.fsrs.stability, statsData.fsrs.last_review || Date.now()) * 100).toFixed(1) 
+                : '0'}%
+            </span>
           </div>
         </div>
 
@@ -636,39 +834,152 @@
     transition: color 0.1s;
     color: var(--text-secondary);
   }
-  .timer.ready { color: var(--primary-color); }
-  .timer.running { color: #22c55e; }
+  .timer.holding { color: #fbbf24; } /* Yellow */
+  .timer.ready { color: #22c55e; }    /* Green */
+  .timer.running { color: var(--text-primary); }
 
-  .rating-controls {
+  .rating-display {
     margin-top: 3rem;
-    background: var(--surface-color);
-    padding: 2rem;
-    border-radius: 16px;
-    border: 1px solid var(--border-color);
-    box-shadow: var(--shadow);
-  }
-  .rating-controls p { margin-top: 0; color: var(--text-muted); font-weight: 500; }
-  .buttons { display: flex; gap: 1rem; }
-  .rate-btn {
-    border: none;
-    padding: 1rem 1.5rem;
-    border-radius: 12px;
-    cursor: pointer;
-    font-weight: bold;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.4rem;
-    min-width: 90px;
-    transition: all 0.15s;
-    color: #fff;
+    gap: 1.5rem;
   }
-  .rate-btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
-  .rate-btn span { font-size: 0.75rem; opacity: 0.7; }
-  .again { background: #ef4444; }
-  .hard { background: #f97316; }
-  .good { background: #22c55e; color: var(--bg-color); }
-  .easy { background: #3b82f6; }
+  .score-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .grade-badge {
+    padding: 0.5rem 1.5rem;
+    border-radius: 99px;
+    font-weight: bold;
+    font-size: 1.25rem;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+  .score-details {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .performance-score {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: var(--primary-color);
+    font-family: var(--font-mono);
+    cursor: help;
+    line-height: 1;
+  }
+  .vs-avg-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  .session-stats {
+    background: var(--surface-color);
+    padding: 1rem;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    margin-bottom: 1rem;
+  }
+  .session-stats h3 {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .session-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  .session-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .reset-link {
+    background: none;
+    border: none;
+    color: var(--primary-color);
+    font-size: 0.7rem;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+    opacity: 0.7;
+  }
+  .reset-link:hover { opacity: 1; }
+  .memorized-count {
+    font-size: 0.75rem;
+    color: var(--primary-color);
+    font-weight: bold;
+    background: rgba(251, 191, 36, 0.1);
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+  }
+  .session-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  .grade-breakdown {
+    display: flex;
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--bg-color);
+    margin-bottom: 0.5rem;
+  }
+  .grade-bar { transition: flex 0.3s ease; }
+  .grade-bar.dnf { background: #ef4444; }
+  .grade-bar.hard { background: #f97316; }
+  .grade-bar.good { background: #22c55e; }
+  .grade-bar.easy { background: #3b82f6; }
+
+  .grade-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+  }
+
+  .session-box {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+  .session-box .label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+  }
+  .session-box .value {
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: var(--text-primary);
+  }
+  .session-box .value small {
+    font-size: 0.7rem;
+    color: #ef4444;
+    font-weight: normal;
+  }
+
+  .grade-badge.grade-1 { background: #ef4444; }
+  .grade-badge.grade-2 { background: #f97316; }
+  .grade-badge.grade-3 { background: #22c55e; color: var(--bg-color); }
+  .grade-badge.grade-4 { background: #3b82f6; }
+
+  .next-hint {
+    color: var(--text-muted);
+    font-size: 1rem;
+  }
+  .next-hint strong { color: var(--text-primary); }
 
   .hints { margin-top: 3rem; color: var(--text-muted); font-size: 0.9rem; }
   .hints strong { color: var(--text-secondary); }

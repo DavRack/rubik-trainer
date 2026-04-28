@@ -27,7 +27,7 @@ const W = [
   0.4523, 1.1803, 0.2333
 ];
 
-export function initFSRSState(grade: Grade): FSRSState {
+export function initFSRSState(grade: Grade, now = Date.now()): FSRSState {
   const stability = W[grade - 1];
   const difficulty = clamp(W[4] - (grade - 3) * W[5], 1, 10);
   
@@ -37,14 +37,13 @@ export function initFSRSState(grade: Grade): FSRSState {
     elapsed_days: 0,
     scheduled_days: Math.round(stability),
     retrievability: 1,
-    last_review: Date.now()
+    last_review: now
   };
 }
 
-export function nextState(state: FSRSState, grade: Grade): FSRSState {
-  const now = Date.now();
+export function nextState(state: FSRSState, grade: Grade, now = Date.now()): FSRSState {
   const lastReview = state.last_review || now;
-  const elapsedDays = (now - lastReview) / (1000 * 60 * 60 * 24);
+  const elapsedDays = Math.max(0, (now - lastReview) / (1000 * 60 * 60 * 24));
   const retrievability = calculateRetrievability(state.stability, elapsedDays);
 
   let newDifficulty = state.difficulty - W[6] * (grade - 3);
