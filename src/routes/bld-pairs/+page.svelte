@@ -145,38 +145,53 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 2rem;
+    margin-bottom: 2.5rem;
   }
-  h1 { margin: 0; color: #ffd500; }
-  .actions { display: flex; gap: 1rem; }
+  h1 { margin: 0; color: var(--primary-color); font-weight: 800; }
+  .actions { display: flex; gap: 0.75rem; }
   .view-btn {
-    background: #222;
-    color: #888;
-    border: 1px solid #333;
+    background: var(--surface-color);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
     padding: 0.6rem 1.2rem;
-    border-radius: 8px;
+    border-radius: 10px;
     cursor: pointer;
-    font-weight: bold;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  .view-btn:hover {
+    border-color: var(--border-color-hover);
+    color: var(--text-primary);
   }
   .view-btn.active {
-    background: #ffd500;
-    color: #000;
-    border-color: #ffd500;
+    background: var(--primary-color);
+    color: var(--bg-color);
+    border-color: var(--primary-color);
   }
   .practice-trigger {
-    background: #333;
-    color: #fff;
+    background: var(--surface-color-hover);
+    color: var(--text-primary);
+    border-color: var(--border-color-hover);
+  }
+  .practice-trigger:hover {
+    border-color: var(--primary-color);
   }
 
   .search-bar { margin-bottom: 2rem; }
   .search-bar input {
     width: 100%;
-    background: #111;
-    border: 1px solid #333;
-    color: #fff;
-    padding: 1rem;
-    border-radius: 8px;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
     font-size: 1.1rem;
+    transition: all 0.2s;
+    outline: none;
+  }
+  .search-bar input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.1);
   }
 
   .pairs-grid {
@@ -185,36 +200,48 @@
     gap: 1.5rem;
   }
   .pair-card {
-    background: #111;
-    border: 1px solid #333;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
     padding: 1.5rem;
-    border-radius: 12px;
+    border-radius: 16px;
     position: relative;
     text-align: center;
-    transition: transform 0.2s;
+    transition: all 0.2s;
+    box-shadow: var(--shadow);
   }
-  .pair-card:hover { transform: translateY(-3px); border-color: #555; }
+  .pair-card:hover { 
+    transform: translateY(-4px); 
+    border-color: var(--border-color-hover);
+    background: var(--surface-color-hover);
+  }
   .delete-btn {
     position: absolute;
-    top: 8px;
-    right: 8px;
+    top: 10px;
+    right: 10px;
     background: none;
     border: none;
-    color: #444;
-    font-size: 1.2rem;
+    color: var(--text-muted);
+    font-size: 1.25rem;
     cursor: pointer;
+    transition: color 0.2s;
   }
-  .delete-btn:hover { color: #ff4444; }
-  .pair-id { font-size: 2rem; font-weight: bold; margin-bottom: 0.2rem; color: #fff; }
-  .pair-num { font-size: 0.8rem; color: #666; margin-bottom: 1rem; }
+  .delete-btn:hover { color: #ef4444; }
+  .pair-id { font-size: 2.5rem; font-weight: 800; margin-bottom: 0.2rem; color: var(--text-primary); }
+  .pair-num { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1.25rem; font-weight: 500; }
   .pair-card input {
     width: 100%;
-    background: #000;
-    border: 1px solid #333;
-    color: #ffd500;
-    padding: 0.5rem;
-    border-radius: 4px;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    color: var(--primary-color);
+    padding: 0.6rem;
+    border-radius: 8px;
     text-align: center;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  .pair-card input:focus {
+    border-color: var(--primary-color);
+    outline: none;
   }
 
   /* Practice */
@@ -223,53 +250,62 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: 400px;
+    min-height: 500px;
   }
-  .card-container { width: 100%; max-width: 500px; }
+  .card-container { width: 100%; max-width: 550px; }
   .flashcard {
-    background: #111;
-    border: 1px solid #333;
-    border-radius: 20px;
-    padding: 3rem;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 24px;
+    padding: 4rem 2rem;
     text-align: center;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.5);
   }
-  .pair-display { font-size: 5rem; font-weight: bold; color: #fff; margin-bottom: 1rem; }
-  .hint { color: #555; font-size: 0.9rem; }
+  .pair-display { font-size: 6rem; font-weight: 800; color: var(--text-primary); margin-bottom: 1.5rem; letter-spacing: -0.05em; }
+  .hint { color: var(--text-muted); font-size: 1rem; font-weight: 500; }
   .card-back {
-    margin-top: 2rem;
-    padding-top: 2rem;
-    border-top: 1px solid #333;
+    margin-top: 3rem;
+    padding-top: 3rem;
+    border-top: 1px solid var(--border-color);
   }
-  .memo-display { font-size: 2.5rem; color: #ffd500; margin-bottom: 2rem; font-weight: bold; }
+  .memo-display { font-size: 3rem; color: var(--primary-color); margin-bottom: 3rem; font-weight: 800; }
   
-  .rating-buttons { display: flex; gap: 0.8rem; justify-content: center; }
+  .rating-buttons { display: flex; gap: 1rem; justify-content: center; }
   .rate-btn {
     border: none;
-    padding: 0.8rem 1rem;
-    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    border-radius: 12px;
     cursor: pointer;
     font-weight: bold;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.3rem;
-    min-width: 70px;
+    gap: 0.4rem;
+    min-width: 85px;
+    color: #fff;
+    transition: all 0.15s;
   }
-  .rate-btn span { font-size: 0.7rem; opacity: 0.6; }
-  .again { background: #ff4444; color: #fff; }
-  .hard { background: #ff8800; color: #fff; }
-  .good { background: #44ff44; color: #000; }
-  .easy { background: #0088ff; color: #fff; }
+  .rate-btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
+  .rate-btn span { font-size: 0.75rem; opacity: 0.7; }
+  .again { background: #ef4444; }
+  .hard { background: #f97316; }
+  .good { background: #22c55e; color: var(--bg-color); }
+  .easy { background: #3b82f6; }
 
   .finished { text-align: center; }
-  .finished h2 { color: #ffd500; margin-bottom: 2rem; }
+  .finished h2 { color: var(--primary-color); margin-bottom: 2rem; font-size: 2rem; }
   .finished button {
-    background: #333;
-    color: #fff;
-    border: none;
+    background: var(--surface-color);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
     padding: 1rem 2rem;
-    border-radius: 8px;
+    border-radius: 12px;
     cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  .finished button:hover {
+    background: var(--surface-color-hover);
+    border-color: var(--border-color-hover);
   }
 </style>

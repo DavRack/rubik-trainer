@@ -9,7 +9,7 @@
   $: front = stickers?.slice(15, 18).split('');
   $: left = stickers?.slice(18, 21).split('');
 
-  const getColor = (char: string) => (char === 'Y' ? '#FFD500' : '#444');
+  const getColor = (char: string) => (char === 'Y' ? '#fbbf24' : '#2d333b');
 
   // Inject viewBox and make it scale
   $: processedSvg = svg ? svg.replace('<svg ', '<svg viewBox="0 0 75 75" preserveAspectRatio="xMidYMid meet" ')
@@ -87,13 +87,14 @@
 
 <style>
   svg, .svg-container {
-    border: 1px solid #333;
-    border-radius: 4px;
-    background: #111;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-color);
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    transition: border-color 0.2s;
   }
   .svg-container :global(svg) {
     width: 100%;
@@ -101,8 +102,12 @@
     border: none;
     background: transparent;
   }
-  /* Optional: make the grey parts of the cube more visible against the dark background */
+  /* Improve visibility of grey parts against dark background */
   .svg-container :global(rect[fill="#888888"]) {
-    fill: #333;
+    fill: #2d333b;
+  }
+  /* Optional: highlight yellow parts with primary color if they are exactly #FFD500 in SVG */
+  .svg-container :global(rect[fill="#FFD500"]) {
+    fill: #fbbf24;
   }
 </style>

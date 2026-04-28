@@ -18,14 +18,22 @@
 </div>
 
 <style>
+  :global(html), :global(body) {
+    background-color: #0d1117 !important;
+    background-color: var(--bg-color) !important;
+    color: var(--text-primary);
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+  }
   nav {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 0 2rem;
-    background: #111;
+    background: var(--surface-color);
     height: 60px;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid var(--border-color);
     position: sticky;
     top: 0;
     z-index: 1000;
@@ -33,20 +41,20 @@
   .logo {
     font-weight: bold;
     font-size: 1.2rem;
-    color: #ffd500;
+    color: var(--primary-color);
   }
   .links {
     display: flex;
     gap: 1.5rem;
   }
   nav a {
-    color: #aaa;
+    color: var(--text-secondary);
     text-decoration: none;
     font-size: 0.9rem;
     transition: color 0.2s;
   }
   nav a:hover {
-    color: #fff;
+    color: var(--text-primary);
   }
   .container {
     min-height: calc(100vh - 60px);

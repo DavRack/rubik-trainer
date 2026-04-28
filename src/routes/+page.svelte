@@ -49,74 +49,84 @@
 
 <style>
   main {
-    padding: 4rem 2rem;
-    max-width: 800px;
+    padding: 6rem 2rem;
+    max-width: 900px;
     margin: 0 auto;
     text-align: center;
   }
   h1 {
-    font-size: 3rem;
-    color: #ffd500;
+    font-size: 3.5rem;
+    color: var(--primary-color);
     margin-bottom: 1rem;
+    font-weight: 800;
+    letter-spacing: -0.025em;
   }
   p {
-    color: #888;
-    font-size: 1.2rem;
-    margin-bottom: 3rem;
+    color: var(--text-secondary);
+    font-size: 1.25rem;
+    margin-bottom: 4rem;
   }
   .tools-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
     gap: 2rem;
   }
   .tool-card {
-    background: #111;
-    border: 1px solid #333;
-    padding: 2rem;
-    border-radius: 12px;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    padding: 2.5rem;
+    border-radius: 16px;
     text-align: left;
-    transition: all 0.2s ease;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     display: block;
     text-decoration: none;
+    box-shadow: var(--shadow);
   }
   .tool-card:hover {
-    border-color: #ffd500;
-    transform: translateY(-5px);
-    background: #1a1a1a;
+    border-color: var(--primary-color);
+    transform: translateY(-8px);
+    background: var(--surface-color-hover);
+    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.2), 0 8px 10px -6px rgb(0 0 0 / 0.2);
   }
   .tool-card h2 {
     margin-top: 0;
-    color: #fff;
+    color: var(--text-primary);
+    font-size: 1.5rem;
+    margin-bottom: 0.75rem;
   }
   .tool-card p {
     margin-bottom: 0;
     font-size: 1rem;
-    line-height: 1.5;
+    line-height: 1.6;
+    color: var(--text-secondary);
   }
 
   .backup-section {
-    margin-top: 4rem;
+    margin-top: 5rem;
     display: flex;
-    gap: 1rem;
+    gap: 1.5rem;
     justify-content: center;
+    border-top: 1px solid var(--border-color);
+    padding-top: 3rem;
   }
   .backup-btn {
-    background: #222;
-    color: #aaa;
-    border: 1px solid #333;
-    padding: 0.8rem 1.5rem;
-    border-radius: 8px;
+    background: var(--surface-color);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    padding: 0.75rem 1.5rem;
+    border-radius: 10px;
     cursor: pointer;
-    font-weight: bold;
+    font-weight: 600;
     transition: all 0.2s;
   }
   .backup-btn:hover {
-    background: #333;
-    color: #fff;
-    border-color: #555;
+    background: var(--surface-color-hover);
+    color: var(--text-primary);
+    border-color: var(--border-color-hover);
   }
   .load-btn:hover {
-    border-color: #ffd500;
+    border-color: var(--primary-color);
+    color: var(--primary-color);
   }
 </style>

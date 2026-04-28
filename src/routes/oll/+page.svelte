@@ -113,21 +113,27 @@
     gap: 1rem;
   }
   .case {
-    background: #222;
+    background: var(--surface-color);
     padding: 0.5rem;
-    border-radius: 8px;
+    border-radius: 12px;
     cursor: pointer;
     text-align: center;
-    border: 2px solid transparent;
-    transition: 0.2s;
+    border: 1px solid var(--border-color);
+    transition: all 0.2s;
     position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
+    box-shadow: var(--shadow);
+  }
+  .case:hover {
+    border-color: var(--border-color-hover);
+    background: var(--surface-color-hover);
+    transform: translateY(-2px);
   }
   .case.selected {
-    border-color: #ffd500;
-    background: #333;
+    border-color: var(--primary-color);
+    background: rgba(251, 191, 36, 0.05);
   }
   .info {
     display: flex;
@@ -136,8 +142,9 @@
     margin-top: 0.5rem;
     width: 100%;
   }
-  .id { color: #888; font-weight: bold; }
+  .id { color: var(--text-muted); font-weight: bold; }
   .name { 
+    color: var(--text-secondary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -145,15 +152,15 @@
   }
   .info-btn {
     position: absolute;
-    top: 5px;
-    right: 5px;
-    background: #444;
-    color: #fff;
-    border: none;
+    top: 8px;
+    right: 8px;
+    background: var(--surface-color-hover);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
     border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    line-height: 18px;
+    width: 24px;
+    height: 24px;
+    line-height: 20px;
     cursor: pointer;
     font-weight: bold;
     display: flex;
@@ -161,8 +168,13 @@
     justify-content: center;
     padding: 0;
     z-index: 2;
+    transition: all 0.2s;
   }
-  .info-btn:hover { background: #666; }
+  .info-btn:hover { 
+    background: var(--primary-color); 
+    color: var(--bg-color);
+    border-color: var(--primary-color);
+  }
 
   .controls {
     margin-bottom: 2rem;
@@ -171,17 +183,30 @@
     align-items: center;
   }
   button, .practice-btn {
-    background: #333;
-    color: #fff;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
+    background: var(--surface-color);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    padding: 0.6rem 1.2rem;
+    border-radius: 8px;
     cursor: pointer;
     text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s;
   }
-  button:hover { background: #444; }
-  .practice-btn { background: #ffd500; color: #000; font-weight: bold; }
-  .practice-btn.disabled { opacity: 0.5; pointer-events: none; }
+  button:hover { 
+    background: var(--surface-color-hover); 
+    border-color: var(--border-color-hover);
+  }
+  .practice-btn { 
+    background: var(--primary-color); 
+    color: var(--bg-color); 
+    border-color: var(--primary-color);
+    font-weight: bold; 
+  }
+  .practice-btn:hover {
+    background: var(--primary-color-hover);
+  }
+  .practice-btn.disabled { opacity: 0.4; pointer-events: none; }
 
   /* Modal */
   .modal-overlay {
@@ -190,41 +215,43 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0,0,0,0.8);
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 100;
   }
   .modal {
-    background: #1a1a1a;
+    background: var(--bg-color);
     width: 90%;
     max-width: 600px;
     max-height: 85vh;
-    border-radius: 12px;
+    border-radius: 16px;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    border: 1px solid #333;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    border: 1px solid var(--border-color);
   }
   header {
     padding: 1.5rem;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
     align-items: center;
   }
-  header h2 { margin: 0; font-size: 1.2rem; }
+  header h2 { margin: 0; font-size: 1.25rem; color: var(--text-primary); }
   .close-btn {
     background: none;
     border: none;
-    color: #888;
-    font-size: 2rem;
+    color: var(--text-muted);
+    font-size: 1.5rem;
     cursor: pointer;
     padding: 0;
     line-height: 1;
+    transition: color 0.2s;
   }
-  .close-btn:hover { color: #fff; }
+  .close-btn:hover { color: var(--text-primary); }
   .modal-content {
     padding: 1.5rem;
     overflow-y: auto;
@@ -236,39 +263,44 @@
     align-items: flex-start;
   }
   .main-details { flex: 1; }
+  .main-details strong { color: var(--text-secondary); display: block; margin-bottom: 0.2rem; font-size: 0.9rem; }
   .alg-code {
     display: block;
-    background: #000;
-    padding: 0.8rem;
-    border-radius: 6px;
-    font-family: monospace;
-    margin-top: 0.4rem;
-    border: 1px solid #444;
+    background: var(--surface-color);
+    padding: 1rem;
+    border-radius: 8px;
+    font-family: var(--font-mono);
+    margin-top: 0.5rem;
+    border: 1px solid var(--border-color);
+    font-size: 1.1rem;
+    color: var(--text-primary);
   }
   .alg-code.highlighted {
-    border-color: #ffd500;
-    color: #ffd500;
+    border-color: var(--primary-color);
+    background: rgba(251, 191, 36, 0.05);
   }
   .algs-list {
     display: flex;
     flex-direction: column;
-    gap: 0.8rem;
-  }
-  .alt-alg {
-    background: #252525;
-    padding: 1rem;
-    border-radius: 8px;
-    border: 1px solid #333;
-  }
-  .alt-moves {
-    font-family: monospace;
-    font-size: 1rem;
-    margin-bottom: 0.5rem;
-  }
-  .alt-meta {
-    font-size: 0.8rem;
-    color: #888;
-    display: flex;
     gap: 1rem;
   }
+  .alt-alg {
+    background: var(--surface-color);
+    padding: 1.25rem;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+  }
+  .alt-moves {
+    font-family: var(--font-mono);
+    font-size: 1.1rem;
+    margin-bottom: 0.75rem;
+    color: var(--text-primary);
+  }
+  .alt-meta {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    display: flex;
+    gap: 1.5rem;
+  }
+  .votes { color: var(--primary-color); }
 </style>
