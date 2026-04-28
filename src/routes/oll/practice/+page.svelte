@@ -138,12 +138,14 @@
 
   $: sortedSummary = selectedIds
     .map(id => {
+      const c = ollCases.find(caseItem => caseItem.id === id);
       const caseData = $stats[id];
       const fsrs = caseData?.fsrs;
       const r = fsrs ? getRetrievability(fsrs.stability, fsrs.last_review!) : 1;
       return {
         id,
-        name: ollCases.find(c => c.id === id)?.name || "Unknown",
+        name: c?.name || "Unknown",
+        svg: c?.svg,
         results: caseData?.results || [],
         stability: fsrs?.stability || 0,
         retrievability: r
@@ -236,14 +238,17 @@
       <div class="summary-list">
         {#each sortedSummary as item}
           <div class="summary-item" on:click={() => statsCaseId = item.id}>
-            <div class="item-header">
-              <span class="item-id">#{item.id}</span>
-              <span class="item-name">{item.name}</span>
-              <span class="item-r" title="Retrievability">{(item.retrievability * 100).toFixed(0)}%</span>
-            </div>
-            <div class="item-meta">
-              <span>S: {item.stability.toFixed(1)}d</span>
-              <span>Solves: {item.results.length}</span>
+            <Cube svg={item.svg} size={40} />
+            <div class="item-info">
+              <div class="item-header">
+                <span class="item-id">#{item.id}</span>
+                <span class="item-name">{item.name}</span>
+                <span class="item-r" title="Retrievability">{(item.retrievability * 100).toFixed(0)}%</span>
+              </div>
+              <div class="item-meta">
+                <span>S: {item.stability.toFixed(1)}d</span>
+                <span>Solves: {item.results.length}</span>
+              </div>
             </div>
           </div>
         {/each}
@@ -260,6 +265,14 @@
         <button class="close-btn" on:click={closeStats}>×</button>
       </header>
       <div class="modal-content">
+        <div class="modal-case-preview">
+          <Cube svg={statsCase.svg} size={150} />
+          <div class="case-details">
+            <p class="subgroup">{statsCase.subgroup}</p>
+            <p class="alg">{statsCase.standard_alg}</p>
+          </div>
+        </div>
+
         <div class="stats-overview">
           <div class="stat-box">
             <span class="label">
@@ -378,8 +391,14 @@
     font-size: 0.9rem;
     border: 1px solid var(--border-color);
     transition: border-color 0.2s;
+    display: flex;
+    gap: 0.8rem;
+    align-items: center;
   }
   .summary-item:hover { border-color: var(--border-color-hover); cursor: pointer; background: var(--surface-color-hover); }
+  .item-info {
+    flex: 1;
+  }
 
   /* Modal Styles */
   .modal-overlay {
@@ -425,6 +444,32 @@
   .modal-content {
     padding: 1.2rem;
     overflow-y: auto;
+  }
+  .modal-case-preview {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+    background: var(--surface-color);
+    padding: 1rem;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--border-color);
+  }
+  .modal-case-preview .case-details {
+    text-align: left;
+    flex: 1;
+  }
+  .modal-case-preview .subgroup {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin: 0 0 0.5rem 0;
+  }
+  .modal-case-preview .alg {
+    font-family: var(--font-mono);
+    color: var(--primary-color);
+    font-weight: bold;
+    font-size: 1.1rem;
+    margin: 0;
   }
   .stats-overview {
     display: grid;
