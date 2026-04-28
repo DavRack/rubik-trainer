@@ -7,8 +7,7 @@
   <div class="logo">OLL Trainer</div>
   <div class="links">
     <a href="{base}/">Home</a>
-    <a href="{base}/oll">OLL Cases</a>
-    <a href="{base}/oll/practice">OLL Practice</a>
+    <a href="{base}/oll">OLL</a>
     <a href="{base}/bld-pairs">BLD Pairs</a>
   </div>
 </nav>

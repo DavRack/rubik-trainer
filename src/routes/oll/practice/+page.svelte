@@ -151,6 +151,35 @@
     })
     .sort((a, b) => a.retrievability - b.retrievability);
 
+  let statsCaseId: number | null = null;
+  $: statsCase = statsCaseId ? ollCases.find(c => c.id === statsCaseId) : null;
+  $: statsData = statsCaseId ? $stats[statsCaseId] : null;
+
+  let activeInfo: string | null = null;
+
+  function toggleInfo(name: string) {
+    activeInfo = activeInfo === name ? null : name;
+  }
+
+  const infoDescriptions: Record<string, string> = {
+    Stability: "Estimated time (in days) for recall probability to drop to 90%. Higher means you will remember it for longer.",
+    Difficulty: "A measure of how hard this case is to remember (1-10). The higher it is, the more frequently you will see it.",
+    Retrievability: "The current estimated probability (0-100%) that you will remember this case correctly right now."
+  };
+
+  function closeStats() {
+    statsCaseId = null;
+    activeInfo = null;
+  }
+
+  function getGradeLabel(grade: Grade) {
+    const labels = { 1: 'Again', 2: 'Hard', 3: 'Good', 4: 'Easy' };
+    return labels[grade];
+  }
+
+  function formatDate(ts: number) {
+    return new Date(ts).toLocaleString();
+  }
 </script>
 
 <div class="layout">
@@ -206,7 +235,7 @@
       </div>
       <div class="summary-list">
         {#each sortedSummary as item}
-          <div class="summary-item">
+          <div class="summary-item" on:click={() => statsCaseId = item.id}>
             <div class="item-header">
               <span class="item-id">#{item.id}</span>
               <span class="item-name">{item.name}</span>
@@ -222,6 +251,78 @@
     </section>
   </aside>
 </div>
+
+{#if statsCaseId && statsCase && statsData}
+  <div class="modal-overlay" on:click={closeStats}>
+    <div class="modal" on:click|stopPropagation>
+      <header>
+        <h2>#{statsCase.id} {statsCase.name} Stats</h2>
+        <button class="close-btn" on:click={closeStats}>×</button>
+      </header>
+      <div class="modal-content">
+        <div class="stats-overview">
+          <div class="stat-box">
+            <span class="label">
+              Stability
+              <button class="info-btn-small" on:click={() => toggleInfo('Stability')}>i</button>
+            </span>
+            <span class="value">{statsData.fsrs?.stability.toFixed(2)}d</span>
+          </div>
+          <div class="stat-box">
+            <span class="label">
+              Difficulty
+              <button class="info-btn-small" on:click={() => toggleInfo('Difficulty')}>i</button>
+            </span>
+            <span class="value">{statsData.fsrs?.difficulty.toFixed(2)}</span>
+          </div>
+          <div class="stat-box">
+            <span class="label">
+              Retrievability
+              <button class="info-btn-small" on:click={() => toggleInfo('Retrievability')}>i</button>
+            </span>
+            <span class="value">{(getRetrievability(statsData.fsrs?.stability || 0, statsData.fsrs?.last_review || Date.now()) * 100).toFixed(1)}%</span>
+          </div>
+        </div>
+
+        {#if activeInfo}
+          <div class="info-explanation">
+            <strong>{activeInfo}:</strong> {infoDescriptions[activeInfo]}
+          </div>
+        {/if}
+
+        <h3>Recent Times</h3>
+        <div class="times-list">
+          {#if statsData.results.length === 0}
+            <p class="empty">No solves yet.</p>
+          {:else}
+            <table>
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Grade</th>
+                  <th>Date</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {#each [...statsData.results].reverse() as result}
+                  <tr>
+                    <td class="time-cell">{formatTime(result.time)}s</td>
+                    <td><span class="grade-tag grade-{result.grade}">{getGradeLabel(result.grade)}</span></td>
+                    <td class="date-cell">{formatDate(result.timestamp)}</td>
+                    <td>
+                      <button class="delete-result-btn" on:click={() => statsCaseId !== null && removeResult(statsCaseId, result.timestamp)}>×</button>
+                    </td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          {/if}
+        </div>
+      </div>
+    </div>
+  </div>
+{/if}
 
 <style>
   .layout {
@@ -278,7 +379,152 @@
     border: 1px solid var(--border-color);
     transition: border-color 0.2s;
   }
-  .summary-item:hover { border-color: var(--border-color-hover); }
+  .summary-item:hover { border-color: var(--border-color-hover); cursor: pointer; background: var(--surface-color-hover); }
+
+  /* Modal Styles */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+  }
+  .modal {
+    background: var(--bg-color);
+    width: 90%;
+    max-width: 500px;
+    max-height: 80vh;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    border: 1px solid var(--border-color);
+  }
+  header {
+    padding: 1.2rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  header h2 { margin: 0; font-size: 1.2rem; color: var(--text-primary); }
+  .close-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.5rem;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .modal-content {
+    padding: 1.2rem;
+    overflow-y: auto;
+  }
+  .stats-overview {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .stat-box {
+    background: var(--surface-color);
+    padding: 1rem;
+    border-radius: 10px;
+    text-align: center;
+    border: 1px solid var(--border-color);
+  }
+  .stat-box .label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 0.3rem;
+  }
+  .info-btn-small {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    background: var(--surface-color-hover);
+    border: 1px solid var(--border-color);
+    border-radius: 50%;
+    font-size: 10px;
+    font-family: serif;
+    font-style: italic;
+    cursor: pointer;
+    color: var(--text-muted);
+    padding: 0;
+    line-height: 1;
+  }
+  .info-btn-small:hover {
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+  }
+  .info-explanation {
+    background: rgba(251, 191, 36, 0.1);
+    border: 1px solid var(--primary-color);
+    padding: 0.8rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    margin-bottom: 1.5rem;
+    animation: fadeIn 0.2s ease-out;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .stat-box .value {
+    font-weight: bold;
+    color: var(--primary-color);
+    font-size: 1.1rem;
+  }
+  .times-list table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+  .times-list th {
+    text-align: left;
+    padding: 0.5rem;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-color);
+    font-weight: 500;
+  }
+  .times-list td {
+    padding: 0.75rem 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .time-cell { font-family: var(--font-mono); font-weight: bold; color: var(--text-primary); }
+  .date-cell { color: var(--text-muted); font-size: 0.8rem; }
+  .grade-tag {
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: bold;
+  }
+  .grade-1 { background: #ef4444; color: #fff; }
+  .grade-2 { background: #f97316; color: #fff; }
+  .grade-3 { background: #22c55e; color: var(--bg-color); }
+  .grade-4 { background: #3b82f6; color: #fff; }
+  .delete-result-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 1.1rem;
+  }
+  .delete-result-btn:hover { color: #ef4444; }
+  .empty { color: var(--text-muted); text-align: center; padding: 2rem; }
   .item-header {
     display: flex;
     gap: 0.5rem;
