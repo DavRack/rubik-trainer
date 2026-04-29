@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { ollCases, type OLLCase } from '$lib/data/oll';
-  import { stats, rateCase, removeResult, clearAllStats, getRetrievability } from '$lib/stores/stats';
+  import { stats, rateCase, removeResult, clearAllStats, getRetrievability, gp, getMedian } from '$lib/stores/stats';
   import Cube from '$lib/components/Cube.svelte';
   import { browser } from '$app/environment';
   import { base } from '$app/paths';
@@ -56,37 +56,25 @@
     canContinue = false;
     clearTimeout(holdTimeout);
 
-    // FSRS Selection Logic
-    // 1. Prioritize cases that have never been seen
-    // 2. Among seen cases, pick the one with lowest retrievability
-    
-    const seen = selectedIds.filter(id => $stats[id]);
-    const unseen = selectedIds.filter(id => !$stats[id]);
+    // Harmonic Distribution Selection Logic
+    // 1. Order each case by the median of the last 5 solves, slowest to fastest
+    const casesWithMedians = selectedIds.map(id => {
+      const caseData = $stats[id];
+      const results = caseData?.results.filter(r => r.time > 0).slice(-5).map(r => r.time) || [];
+      const median = results.length > 0 ? getMedian(results) : Infinity;
+      return { id, median };
+    });
 
-    let selectedId: number;
+    // Sort slowest to fastest (higher median first)
+    casesWithMedians.sort((a, b) => b.median - a.median);
 
-    if (unseen.length > 0) {
-      selectedId = unseen[Math.floor(Math.random() * unseen.length)];
-    } else {
-      // Pick based on retrievability
-      const sortedByDue = seen.map(id => {
-        const data = $stats[id]!;
-        const r = data.fsrs ? getRetrievability(data.fsrs.stability, data.fsrs.last_review!) : 0;
-        return { id, r };
-      }).sort((a, b) => a.r - b.r);
-      
-      selectedId = sortedByDue[0].id;
-    }
+    // 2. Generate random number 0-1 and use inverse gp to get index
+    const randomIndex = gp(Math.random(), casesWithMedians.length);
+    const selectedId = casesWithMedians[randomIndex].id;
 
     currentCase = ollCases.find(c => c.id === selectedId) || null;
   }
 
-  function getMedian(times: number[]): number {
-    if (times.length === 0) return 0;
-    const sorted = [...times].sort((a, b) => a - b);
-    const mid = Math.floor(sorted.length / 2);
-    return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-  }
 
 
   $: globalBestMedian = (() => {

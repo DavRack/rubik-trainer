@@ -1,7 +1,6 @@
 import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
 import { type FSRSState, type Grade, initFSRSState, nextState } from '../fsrs';
-import { ollCases } from '../data/oll';
 
 export interface Result {
   time: number;
@@ -26,7 +25,7 @@ if (browser) {
   });
 }
 
-function getMedian(times: number[]): number {
+export function getMedian(times: number[]): number {
   if (times.length === 0) return 0;
   const sorted = [...times].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
@@ -119,4 +118,25 @@ export function clearAllStats() {
 export function getRetrievability(stability: number, lastReview: number): number {
   const elapsedDays = (Date.now() - lastReview) / (1000 * 60 * 60 * 24);
   return Math.pow(1 + (19 / 3) * (elapsedDays / stability), -0.5);
+}
+
+function harmonicPartialSum(maxValue: number): number {
+  let total = 0;
+  for (let i = 1; i<=maxValue; i++){
+    total += 1/i
+  }
+  return total
+}
+
+function g(x: number, maxValue: number): number {
+  let p = harmonicPartialSum(maxValue)
+  return 1/(p*(x+1))
+}
+
+export function gp(x: number, maxValue: number): number {
+  if (x > 1) {
+    throw "x > 1 (probability expected)";
+  }
+  let p = harmonicPartialSum(maxValue)
+  return Math.floor((1/(x-(p*g(maxValue-1, maxValue)*(x-1))))-1)
 }
