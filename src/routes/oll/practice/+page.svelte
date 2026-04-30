@@ -56,6 +56,9 @@
     canContinue = false;
     clearTimeout(holdTimeout);
 
+    console.log("--- Choosing Next Case ---");
+    console.log("Selected IDs:", selectedIds);
+
     // Harmonic Distribution Selection Logic
     // 1. Order each case by the median of the last 5 solves, slowest to fastest
     const casesWithMedians = selectedIds.map(id => {
@@ -67,12 +70,18 @@
 
     // Sort slowest to fastest (higher median first)
     casesWithMedians.sort((a, b) => b.median - a.median);
+    console.log("Cases ordered by median (slowest first):", casesWithMedians);
 
     // 2. Generate random number 0-1 and use inverse gp to get index
-    const randomIndex = gp(Math.random(), casesWithMedians.length);
+    const rand = Math.random();
+    const randomIndex = gp(rand, casesWithMedians.length);
+    console.log(`Selection debug: rand=${rand.toFixed(4)}, chosenIndex=${randomIndex} (out of ${casesWithMedians.length})`);
+    
     const selectedId = casesWithMedians[randomIndex].id;
+    console.log("Selected Case ID:", selectedId);
 
     currentCase = ollCases.find(c => c.id === selectedId) || null;
+    console.log("--------------------------");
   }
 
 
@@ -136,7 +145,7 @@
       }
     } else if (e.code === 'Backspace') {
       e.preventDefault();
-      if (timerState === 'idle' || timerState === 'finished') {
+      if (timerState === 'idle') {
         if (currentCase) stopTimer(true);
       }
     }
@@ -198,26 +207,41 @@
     return t.toFixed(2);
   }
 
-  $: sortedSummary = selectedIds
-    .map(id => {
-      const c = ollCases.find(caseItem => caseItem.id === id);
-      const caseData = $stats[id];
-      const fsrs = caseData?.fsrs;
-      const r = fsrs ? getRetrievability(fsrs.stability, fsrs.last_review!) : 1;
-      return {
-        id,
-        name: c?.name || "Unknown",
-        svg: c?.svg,
-        results: caseData?.results || [],
-        stability: fsrs?.stability || 0,
-        retrievability: r
-      };
-    })
-    .sort((a, b) => a.retrievability - b.retrievability);
+  $: sortedSummary = (() => {
+    const summary = selectedIds
+      .map(id => {
+        const c = ollCases.find(caseItem => caseItem.id === id);
+        const caseData = $stats[id];
+        const results = caseData?.results.filter(r => r.time > 0).slice(-5).map(r => r.time) || [];
+        const median = results.length > 0 ? getMedian(results) : Infinity;
+        
+        return {
+          id,
+          name: c?.name || "Unknown",
+          svg: c?.svg,
+          results: caseData?.results || [],
+          median
+        };
+      })
+      .sort((a, b) => b.median - a.median); // Slowest first
+    return summary;
+  })();
 
   let statsCaseId: number | null = null;
   $: statsCase = statsCaseId ? ollCases.find(c => c.id === statsCaseId) : null;
   $: statsData = statsCaseId ? $stats[statsCaseId] : null;
+
+  $: modalStats = (() => {
+    if (!statsData) return null;
+    const results = statsData.results.filter(r => r.time > 0);
+    const last5 = results.slice(-5).map(r => r.time);
+    return {
+      best: results.length > 0 ? Math.min(...results.map(r => r.time)) : 0,
+      medianLast5: last5.length > 0 ? getMedian(last5) : 0,
+      total: statsData.results.length,
+      dnfs: statsData.results.filter(r => r.grade === 1).length
+    };
+  })();
 
   let activeInfo: string | null = null;
   let sessionStartTime = Date.now();
@@ -278,10 +302,34 @@
       4: sessionResults.filter(r => r.grade === 4).length,
     };
 
+    return {
+      count: sessionResults.length,
+      dnfs: gradeCounts[1],
+      avgTime: avgTime,
+      bestTime: bestTime,
+      grades: gradeCounts
+    };
+  })();
+
+  $: totalStats = (() => {
+    const allResults = Object.values($stats).flatMap(s => s.results);
+    if (allResults.length === 0) return null;
+
+    const validSolves = allResults.filter(r => r.grade > 1);
+    const avgTime = validSolves.reduce((acc, r) => acc + r.time, 0) / (validSolves.length || 1);
+    const bestTime = validSolves.length > 0 ? Math.min(...validSolves.map(r => r.time)) : 0;
+
+    const gradeCounts = {
+      1: allResults.filter(r => r.grade === 1).length,
+      2: allResults.filter(r => r.grade === 2).length,
+      3: allResults.filter(r => r.grade === 3).length,
+      4: allResults.filter(r => r.grade === 4).length,
+    };
+
     const memorizedCount = Object.keys($stats).length;
 
     return {
-      count: sessionResults.length,
+      count: allResults.length,
       dnfs: gradeCounts[1],
       avgTime: avgTime,
       bestTime: bestTime,
@@ -295,8 +343,6 @@
   }
 
   const infoDescriptions: Record<string, string> = {
-    Stability: "Estimated time (in days) for recall probability to drop to 90%. Higher means you will remember it for longer.",
-    Difficulty: "A measure of how hard this case is to remember (1-10). The higher it is, the more frequently you will see it.",
     Retrievability: "The current estimated probability (0-100%) that you will remember this case correctly right now."
   };
 
@@ -323,7 +369,7 @@
       <div class="scramble">{currentCase.setup}</div>
       
       <div class="display">
-        <div class="case-preview-container" class:blurred={!showCase} on:click={() => showCase = true}>
+        <div class="case-preview-container" class:blurred={!showCase} on:click={() => showCase = true} role="button" tabindex="0" on:keydown={(e) => e.key === 'Enter' && (showCase = true)}>
           <Cube svg={currentCase.svg} size={250} />
           {#if !showCase}
             <div class="reveal-overlay">
@@ -377,10 +423,9 @@
       <section class="session-stats">
         <div class="session-header">
           <div class="session-title">
-            <h3>Session Stats</h3>
+            <h3>Current Session</h3>
             <button class="reset-link" on:click={resetSession}>Reset</button>
           </div>
-          <span class="memorized-count" title="Total cases with at least one solve">{sessionStats.memorized}/57 Memorized</span>
         </div>
         <div class="session-grid">
           <div class="session-box">
@@ -396,18 +441,43 @@
             <span class="value" style="color: var(--primary-color)">{sessionStats.bestTime.toFixed(2)}s</span>
           </div>
         </div>
+      </section>
+    {/if}
+
+    {#if totalStats}
+      <section class="session-stats total-stats">
+        <div class="session-header">
+          <div class="session-title">
+            <h3>All-Time Stats</h3>
+          </div>
+          <span class="memorized-count" title="Total cases with at least one solve">{totalStats.memorized}/57 Memorized</span>
+        </div>
+        <div class="session-grid">
+          <div class="session-box">
+            <span class="label">Total Solves</span>
+            <span class="value">{totalStats.count}</span>
+          </div>
+          <div class="session-box">
+            <span class="label">All-Time Avg</span>
+            <span class="value">{totalStats.avgTime.toFixed(2)}s</span>
+          </div>
+          <div class="session-box">
+            <span class="label">PB Time</span>
+            <span class="value" style="color: var(--primary-color)">{totalStats.bestTime.toFixed(2)}s</span>
+          </div>
+        </div>
 
         <div class="grade-breakdown">
-          <div class="grade-bar dnf" title="DNF: {sessionStats.grades[1]}" style="flex: {sessionStats.grades[1]}"></div>
-          <div class="grade-bar hard" title="Hard: {sessionStats.grades[2]}" style="flex: {sessionStats.grades[2]}"></div>
-          <div class="grade-bar good" title="Good: {sessionStats.grades[3]}" style="flex: {sessionStats.grades[3]}"></div>
-          <div class="grade-bar easy" title="Easy: {sessionStats.grades[4]}" style="flex: {sessionStats.grades[4]}"></div>
+          <div class="grade-bar dnf" title="DNF: {totalStats.grades[1]}" style="flex: {totalStats.grades[1]}"></div>
+          <div class="grade-bar hard" title="Hard: {totalStats.grades[2]}" style="flex: {totalStats.grades[2]}"></div>
+          <div class="grade-bar good" title="Good: {totalStats.grades[3]}" style="flex: {totalStats.grades[3]}"></div>
+          <div class="grade-bar easy" title="Easy: {totalStats.grades[4]}" style="flex: {totalStats.grades[4]}"></div>
         </div>
         <div class="grade-labels">
-          <span>{sessionStats.grades[1]} DNF</span>
-          <span>{sessionStats.grades[2]} H</span>
-          <span>{sessionStats.grades[3]} G</span>
-          <span>{sessionStats.grades[4]} E</span>
+          <span>{totalStats.grades[1]} DNF</span>
+          <span>{totalStats.grades[2]} H</span>
+          <span>{totalStats.grades[3]} G</span>
+          <span>{totalStats.grades[4]} E</span>
         </div>
       </section>
     {/if}
@@ -419,16 +489,15 @@
       </div>
       <div class="summary-list">
         {#each sortedSummary as item}
-          <div class="summary-item" on:click={() => statsCaseId = item.id}>
+          <div class="summary-item" on:click={() => statsCaseId = item.id} role="button" tabindex="0" on:keydown={(e) => e.key === 'Enter' && (statsCaseId = item.id)}>
             <Cube svg={item.svg} size={40} />
             <div class="item-info">
               <div class="item-header">
                 <span class="item-id">#{item.id}</span>
                 <span class="item-name">{item.name}</span>
-                <span class="item-r" title="Retrievability">{(item.retrievability * 100).toFixed(0)}%</span>
+                <span class="item-r" title="Median of last 5 solves">{item.median === Infinity ? 'N/A' : item.median.toFixed(2) + 's'}</span>
               </div>
               <div class="item-meta">
-                <span>S: {item.stability.toFixed(1)}d</span>
                 <span>Solves: {item.results.length}</span>
               </div>
             </div>
@@ -440,8 +509,8 @@
 </div>
 
 {#if statsCaseId && statsCase && statsData}
-  <div class="modal-overlay" on:click={closeStats}>
-    <div class="modal" on:click|stopPropagation>
+  <div class="modal-overlay" on:click={closeStats} role="button" tabindex="0" on:keydown={(e) => e.key === 'Escape' && closeStats()}>
+    <div class="modal" on:click|stopPropagation role="presentation">
       <header>
         <h2>#{statsCase.id} {statsCase.name} Stats</h2>
         <button class="close-btn" on:click={closeStats}>×</button>
@@ -457,29 +526,16 @@
 
         <div class="stats-overview">
           <div class="stat-box">
-            <span class="label">
-              Stability
-              <button class="info-btn-small" on:click={() => toggleInfo('Stability')}>i</button>
-            </span>
-            <span class="value">{statsData.fsrs?.stability.toFixed(2)}d</span>
+            <span class="label">Best Time</span>
+            <span class="value">{modalStats?.best ? modalStats.best.toFixed(2) + 's' : 'N/A'}</span>
           </div>
           <div class="stat-box">
-            <span class="label">
-              Difficulty
-              <button class="info-btn-small" on:click={() => toggleInfo('Difficulty')}>i</button>
-            </span>
-            <span class="value">{statsData.fsrs?.difficulty.toFixed(2)}</span>
+            <span class="label">Median (L5)</span>
+            <span class="value">{modalStats?.medianLast5 ? modalStats.medianLast5.toFixed(2) + 's' : 'N/A'}</span>
           </div>
           <div class="stat-box">
-            <span class="label">
-              Retrievability
-              <button class="info-btn-small" on:click={() => toggleInfo('Retrievability')}>i</button>
-            </span>
-            <span class="value">
-              {statsData.fsrs?.stability 
-                ? (getRetrievability(statsData.fsrs.stability, statsData.fsrs.last_review || Date.now()) * 100).toFixed(1) 
-                : '0'}%
-            </span>
+            <span class="label">Solves</span>
+            <span class="value">{modalStats?.total || 0} ({modalStats?.dnfs || 0} DNF)</span>
           </div>
         </div>
 
@@ -952,11 +1008,7 @@
     font-weight: bold;
     color: var(--text-primary);
   }
-  .session-box .value small {
-    font-size: 0.7rem;
-    color: #ef4444;
-    font-weight: normal;
-  }
+
 
   .grade-badge.grade-1 { background: #ef4444; }
   .grade-badge.grade-2 { background: #f97316; }

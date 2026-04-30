@@ -3,11 +3,11 @@
   export let stickers: string | null = null; // 21 chars: 9 top, 3 back, 3 right, 3 front, 3 left
   export let size: number = 100;
 
-  $: top = stickers?.slice(0, 9).split('');
-  $: back = stickers?.slice(9, 12).split('');
-  $: right = stickers?.slice(12, 15).split('');
-  $: front = stickers?.slice(15, 18).split('');
-  $: left = stickers?.slice(18, 21).split('');
+  $: top = stickers ? stickers.slice(0, 9).split('') : [];
+  $: back = stickers ? stickers.slice(9, 12).split('') : [];
+  $: right = stickers ? stickers.slice(12, 15).split('') : [];
+  $: front = stickers ? stickers.slice(15, 18).split('') : [];
+  $: left = stickers ? stickers.slice(18, 21).split('') : [];
 
   const getColor = (char: string) => (char === 'Y' ? '#fbbf24' : '#2d333b');
 

@@ -56,7 +56,7 @@
 
   <div class="grid">
     {#each ollCases as oll}
-      <div class="case" class:selected={selectedIds.has(oll.id)} on:click={() => toggle(oll.id)}>
+      <div class="case" class:selected={selectedIds.has(oll.id)} on:click={() => toggle(oll.id)} role="button" tabindex="0" on:keydown={(e) => e.key === 'Enter' && toggle(oll.id)}>
         <Cube svg={oll.svg} size={80} />
         <div class="info">
           <span class="id">#{oll.id}</span>
@@ -69,8 +69,8 @@
 </main>
 
 {#if infoCase}
-  <div class="modal-overlay" on:click={closeInfo}>
-    <div class="modal" on:click|stopPropagation>
+  <div class="modal-overlay" on:click={closeInfo} role="button" tabindex="0" on:keydown={(e) => e.key === 'Escape' && closeInfo()}>
+    <div class="modal" on:click|stopPropagation role="presentation">
       <header>
         <h2>{infoCase.name} ({infoCase.subgroup})</h2>
         <button class="close-btn" on:click={closeInfo}>×</button>
