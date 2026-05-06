@@ -1,0 +1,15 @@
+{
+	"/": [
+		"src/routes/+layout.ts",
+		"src/routes/+layout.ts"
+	],
+	"/bld-pairs": [
+		"src/routes/+layout.ts"
+	],
+	"/oll": [
+		"src/routes/+layout.ts"
+	],
+	"/oll/practice": [
+		"src/routes/+layout.ts"
+	]
+}
