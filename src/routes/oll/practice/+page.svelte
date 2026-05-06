@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { ollCases, type OLLCase } from '$lib/data/oll';
-  import { stats, rateCase, removeResult, clearAllStats, getRetrievability, gp, getMedian } from '$lib/stores/stats';
+  import { stats, selectionK, rateCase, removeResult, clearAllStats, getRetrievability, gp, getMedian } from '$lib/stores/stats';
   import Cube from '$lib/components/Cube.svelte';
   import { browser } from '$app/environment';
   import { base } from '$app/paths';
@@ -59,26 +59,34 @@
     console.log("--- Choosing Next Case ---");
     console.log("Selected IDs:", selectedIds);
 
-    // Harmonic Distribution Selection Logic
-    // 1. Order each case by the median of the last 5 solves, slowest to fastest
-    const casesWithMedians = selectedIds.map(id => {
-      const caseData = $stats[id];
-      const results = caseData?.results.filter(r => r.time > 0).slice(-5).map(r => r.time) || [];
-      const median = results.length > 0 ? getMedian(results) : Infinity;
-      return { id, median };
-    });
+    let selectedId: number;
 
-    // Sort slowest to fastest (higher median first)
-    casesWithMedians.sort((a, b) => b.median - a.median);
-    console.log("Cases ordered by median (slowest first):", casesWithMedians);
+    if (forcedNextId !== null && selectedIds.includes(forcedNextId)) {
+      selectedId = forcedNextId;
+      forcedNextId = null;
+      console.log("Using Forced Case ID:", selectedId);
+    } else {
+      // Harmonic Distribution Selection Logic
+      // 1. Order each case by the median of the last 5 solves, slowest to fastest
+      const casesWithMedians = selectedIds.map(id => {
+        const caseData = $stats[id];
+        const results = caseData?.results.filter(r => r.time > 0).slice(-5).map(r => r.time) || [];
+        const median = results.length > 0 ? getMedian(results) : Infinity;
+        return { id, median };
+      });
 
-    // 2. Generate random number 0-1 and use inverse gp to get index
-    const rand = Math.random();
-    const randomIndex = gp(rand, casesWithMedians.length);
-    console.log(`Selection debug: rand=${rand.toFixed(4)}, chosenIndex=${randomIndex} (out of ${casesWithMedians.length})`);
-    
-    const selectedId = casesWithMedians[randomIndex].id;
-    console.log("Selected Case ID:", selectedId);
+      // Sort slowest to fastest (higher median first)
+      casesWithMedians.sort((a, b) => b.median - a.median);
+      console.log("Cases ordered by median (slowest first):", casesWithMedians);
+
+      // 2. Generate random number 0-1 and use inverse gp to get index
+      const rand = Math.random();
+      const randomIndex = gp(rand, casesWithMedians.length, $selectionK);
+      console.log(`Selection debug: rand=${rand.toFixed(4)}, k=${$selectionK}, chosenIndex=${randomIndex} (out of ${casesWithMedians.length})`);
+      
+      selectedId = casesWithMedians[randomIndex].id;
+      console.log("Selected Case ID:", selectedId);
+    }
 
     currentCase = ollCases.find(c => c.id === selectedId) || null;
     console.log("--------------------------");
@@ -228,6 +236,7 @@
   })();
 
   let statsCaseId: number | null = null;
+  let forcedNextId: number | null = null;
   $: statsCase = statsCaseId ? ollCases.find(c => c.id === statsCaseId) : null;
   $: statsData = statsCaseId ? $stats[statsCaseId] : null;
 
@@ -351,6 +360,16 @@
     activeInfo = null;
   }
 
+  function queueNext() {
+    if (statsCaseId) {
+      forcedNextId = statsCaseId;
+      closeStats();
+      if (timerState === 'idle' || timerState === 'finished') {
+        nextCase();
+      }
+    }
+  }
+
   function getGradeLabel(grade: Grade) {
     const labels = { 1: 'Again', 2: 'Hard', 3: 'Good', 4: 'Easy' };
     return labels[grade];
@@ -419,6 +438,22 @@
   </main>
 
   <aside class="sidebar">
+    <section class="settings">
+      <h3>Settings</h3>
+      <div class="setting-item">
+        <label for="k-slider">Selection Bias (k): {$selectionK.toFixed(2)}</label>
+        <input 
+          id="k-slider" 
+          type="range" 
+          min="0.01" 
+          max="0.99" 
+          step="0.01" 
+          bind:value={$selectionK} 
+        />
+        <p class="setting-hint">Higher = focus more on slowest cases</p>
+      </div>
+    </section>
+
     {#if sessionStats}
       <section class="session-stats">
         <div class="session-header">
@@ -512,7 +547,10 @@
   <div class="modal-overlay" on:click={closeStats} role="button" tabindex="0" on:keydown={(e) => e.key === 'Escape' && closeStats()}>
     <div class="modal" on:click|stopPropagation role="presentation">
       <header>
-        <h2>#{statsCase.id} {statsCase.name} Stats</h2>
+        <div class="header-left">
+          <h2>#{statsCase.id} {statsCase.name} Stats</h2>
+          <button class="practice-next-btn" on:click={queueNext}>Practice Next</button>
+        </div>
         <button class="close-btn" on:click={closeStats}>×</button>
       </header>
       <div class="modal-content">
@@ -674,7 +712,27 @@
     justify-content: space-between;
     align-items: center;
   }
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
   header h2 { margin: 0; font-size: 1.2rem; color: var(--text-primary); }
+  .practice-next-btn {
+    background: var(--primary-color);
+    color: var(--bg-color);
+    border: none;
+    padding: 0.3rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .practice-next-btn:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+  }
   .close-btn {
     background: none;
     border: none;
@@ -1037,5 +1095,39 @@
     display: inline-block;
     border: 1px solid var(--border-color);
     color: var(--primary-color);
+  }
+
+  .settings {
+    background: var(--surface-color);
+    padding: 1rem;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    margin-bottom: 1rem;
+  }
+  .settings h3 {
+    margin: 0 0 0.75rem 0;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .setting-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .setting-item label {
+    font-size: 0.85rem;
+    color: var(--text-primary);
+  }
+  .setting-item input[type="range"] {
+    width: 100%;
+    cursor: pointer;
+    accent-color: var(--primary-color);
+  }
+  .setting-hint {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin: 0;
   }
 </style>

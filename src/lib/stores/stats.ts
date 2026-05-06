@@ -18,10 +18,14 @@ export type Stats = Record<number, CaseStats>;
 const initialStats: Stats = browser ? JSON.parse(localStorage.getItem('oll-stats-v2') || '{}') : {};
 
 export const stats = writable<Stats>(initialStats);
+export const selectionK = writable<number>(browser ? parseFloat(localStorage.getItem('selection-k') || '0.2') : 0.2);
 
 if (browser) {
   stats.subscribe(value => {
     localStorage.setItem('oll-stats-v2', JSON.stringify(value));
+  });
+  selectionK.subscribe(value => {
+    localStorage.setItem('selection-k', value.toString());
   });
 }
 
@@ -120,23 +124,12 @@ export function getRetrievability(stability: number, lastReview: number): number
   return Math.pow(1 + (19 / 3) * (elapsedDays / stability), -0.5);
 }
 
-function harmonicPartialSum(maxValue: number): number {
-  let total = 0;
-  for (let i = 1; i<=maxValue; i++){
-    total += 1/i
-  }
-  return total
-}
-
-function g(x: number, maxValue: number): number {
-  let p = harmonicPartialSum(maxValue)
-  return 1/(p*(x+1))
-}
-
-export function gp(x: number, maxValue: number): number {
-  if (x > 1) {
-    throw "x > 1 (probability expected)";
-  }
-  let p = harmonicPartialSum(maxValue)
-  return Math.floor((1/(x-(p*g(maxValue-1, maxValue)*(x-1))))-1)
+export function gp(x: number, n: number, k: number): number {
+  if (n <= 1) return 0;
+  if (k <= 0.0001) return n - 1;
+  if (k >= 0.9999) return 0;
+  const a = n;
+  const b = Math.log(1 / a) / Math.log(k);
+  const result = Math.floor(a * Math.pow(1 - x, b));
+  return Math.max(0, Math.min(n - 1, result));
 }
